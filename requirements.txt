@@ -1,0 +1,2 @@
+datasets==4.2.0
+torch==2.8.0
