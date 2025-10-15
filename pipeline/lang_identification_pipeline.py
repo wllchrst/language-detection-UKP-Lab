@@ -1,4 +1,5 @@
 import torch
+import os
 from models.lang_id_classifier import LangIDClassifier
 from pipeline.base_pipeline import BasePipeline
 from datasets import Dataset, load_dataset
@@ -106,6 +107,7 @@ class LangIdentificationPipeline(BasePipeline):
                 best_val_loss = avg_val_loss
                 best_model_state = model.state_dict()
 
+        os.makedirs("saved_models", exist_ok=True)
         model.load_state_dict(best_model_state)
         torch.save(model.state_dict(), "saved_models/langid_classifier.pt")
         return model
