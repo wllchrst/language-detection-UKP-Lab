@@ -107,6 +107,7 @@ class LangIdentificationPipeline(BasePipeline):
                 best_model_state = model.state_dict()
 
         model.load_state_dict(best_model_state)
+        torch.save(model.state_dict(), "saved_models/langid_classifier.pt")
         return model
 
     def evaluate_training_result(self,
