@@ -9,6 +9,8 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import accuracy_score, classification_report
 from torch.utils.data import DataLoader, TensorDataset
 
+SAVE_MODEL_FOLDERNAME = 'saved_models'
+
 class LangIdentificationPipeline(BasePipeline):
     """
     A pipeline for language identification specific using classifier that is trained using this class.
@@ -19,6 +21,8 @@ class LangIdentificationPipeline(BasePipeline):
     """
     def __init__(self,
                  testing: bool,
+                 batch_size: int,
+                 epoch: int,
                  model_embed_path: str = 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2',
                  dataset_path: str = 'papluca/language-identification'):
         super().__init__()
@@ -29,11 +33,11 @@ class LangIdentificationPipeline(BasePipeline):
             dataset_path=dataset_path
         )
 
-        self.model = self.train(batch_size=64, epochs=5)
+        self.model = self.train(batch_size=batch_size, epochs=epoch)
 
         self.evaluate_training_result(
             model=self.model,
-            batch_size=64
+            batch_size=batch_size
         )
 
     def get_device(self):
@@ -107,9 +111,10 @@ class LangIdentificationPipeline(BasePipeline):
                 best_val_loss = avg_val_loss
                 best_model_state = model.state_dict()
 
-        os.makedirs("saved_models", exist_ok=True)
+        os.makedirs(SAVE_MODEL_FOLDERNAME, exist_ok=True)
         model.load_state_dict(best_model_state)
-        torch.save(model.state_dict(), "saved_models/langid_classifier.pt")
+        filename = f'langid_classifier_bs{batch_size}_ep{epoch}.pt'
+        torch.save(model.state_dict(), f"{SAVE_MODEL_FOLDERNAME}/{filename}")
         return model
 
     def evaluate_training_result(self,
