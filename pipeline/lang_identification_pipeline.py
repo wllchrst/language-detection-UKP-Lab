@@ -17,9 +17,11 @@ class LangIdentificationPipeline(BasePipeline):
     train_np (np means no processed)
     """
     def __init__(self,
+                 testing: bool,
                  model_embed_path: str = 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2',
                  dataset_path: str = 'papluca/language-identification'):
         super().__init__()
+        self.testing = testing
         self.label_encoder = LabelEncoder()
         self.embed_model = SentenceTransformer(model_embed_path)
         self.train_dataset, self.validation_dataset, self.test_dataset = self.process_dataset(
@@ -33,10 +35,24 @@ class LangIdentificationPipeline(BasePipeline):
             batch_size=64
         )
 
+    def get_device(self):
+        device = None
+        if torch.cuda.is_available():
+            current_device_index = torch.cuda.current_device()
+            gpu_name = torch.cuda.get_device_name(current_device_index)
+            device = torch.device("cuda")
+            print(f"PyTorch is currently using GPU: {gpu_name} (Device Index: {current_device_index})")
+        else:
+            device = torch.device("cpu")
+            print("CUDA is not available. PyTorch is running on CPU.")
+
+        return device
+
+
     def train(self,
               batch_size: int = 64,
               epochs: int = 5) -> LangIDClassifier:
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        device = self.get_device()
         train_loader = DataLoader(self.train_dataset, batch_size=batch_size, shuffle=True)
         validation_loader = DataLoader(self.validation_dataset, batch_size=batch_size, shuffle=False)
 
@@ -98,7 +114,7 @@ class LangIdentificationPipeline(BasePipeline):
                                  batch_size: int):
         model.eval()
         test_loader = DataLoader(self.test_dataset, batch_size=batch_size, shuffle=False)
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        device = self.get_device()
         predictions, true_labels = [], []
 
         with torch.no_grad():
@@ -131,9 +147,11 @@ class LangIdentificationPipeline(BasePipeline):
 
     def process_dataset(self, dataset_path: str) -> Tuple[TensorDataset, TensorDataset, TensorDataset]:
         train_np, validation_np, test_np = self.retrieve_dataset(dataset_path=dataset_path)
-        train_np = train_np[:200]
-        test_np = test_np[:200]
-        validation_np = validation_np[:200]
+
+        if self.testing:
+            train_np = train_np[:200]
+            test_np = test_np[:200]
+            validation_np = validation_np[:200]
 
         train = self.convert_dataset(train_np)
         validation = self.convert_dataset(validation_np)

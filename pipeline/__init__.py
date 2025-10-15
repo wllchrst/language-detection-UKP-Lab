@@ -1,0 +1,1 @@
+﻿from pipeline.lang_identification_pipeline import LangIdentificationPipeline
